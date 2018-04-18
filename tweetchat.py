@@ -21,14 +21,17 @@ twitter_stream = TwitterStream(domain='stream.twitter.com', auth=OAuth(access_to
 
 # Get a sample of the public data following through Twitter
 
-# copy and paste these: 🙂🙁👍👎
-iterator = twitter_stream.statuses.filter(track="🙂", language="en")
+# copy and paste these: 😄🙁👍👎
+iterator = twitter_stream.statuses.filter(track="😄", language="en")
 
 # Print each tweet in the stream to the screen 
 # Here we set it to stop after getting 1000 tweets. 
 # You don't have to set it to stop, but can continue running 
 # the Twitter API to collect data for days or even longer. 
-tweet_count = 1
+
+f = open("smileTweetsRaw.txt","w+",encoding="utf8")
+tweet_count = 1000
+#for tweet in iterator:
 for tweet in iterator:
     # Twitter Python Tool wraps the data returned by Twitter 
     # as a TwitterDictResponse object.
@@ -36,15 +39,19 @@ for tweet in iterator:
     stringtweet = json.dumps(tweet)
     data = json.loads(stringtweet)
     if "text" in data:
-        text = data["text"]
-        # we want no overlap with out tweets
-        if "🙁" not in text and "👍" not in text and "👎" not in text and "🙂" in text:
-            print(text)
-            # save to file placeholder
-            tweet_count -= 1
+        if "user" in data:
+            if "geo_enabled" in data["user"]:
+                if data["retweeted"] == False:
+                    text = data["text"]
+                    if "🙁" not in text and "👍" not in text and "👎" not in text and "😄" in text:
+                        if text.find("http") == -1:
+                            #save to file
+                            f.write(text)
+                            tweet_count -= 1
     
     # The command below will do pretty printing for JSON data, try it out
     #print(json.dumps(tweet, indent=4))
        
     if tweet_count <= 0:
+        f.close()
         break 
