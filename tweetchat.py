@@ -1,4 +1,9 @@
 
+# INSTRUCTIONS:
+   # 1. CHANGE TRACK IN ITERATOR TO BE DESIRED EMOJI
+   # 2. CHANGE FILE WRITE LOCATION
+   # 3. CHANGE "EMOJI" NOT IN TEXT PORTION TO CORRESPOND
+
 # Import the necessary package to process data in JSON format
 try:
     import json
@@ -7,6 +12,7 @@ except ImportError:
 
 # Import the necessary methods from "twitter" library
 from twitter import *
+import re
 
 # Variables that contains the user credentials to access Twitter API 
 access_token = '64570827-oNAvcxk9F9y9tplfENm5faCmpcLaO5mIqsav3SMPL'
@@ -31,7 +37,6 @@ iterator = twitter_stream.statuses.filter(track="😄", language="en")
 
 f = open("smileTweetsRaw.txt","w+",encoding="utf8")
 tweet_count = 1000
-#for tweet in iterator:
 for tweet in iterator:
     # Twitter Python Tool wraps the data returned by Twitter 
     # as a TwitterDictResponse object.
@@ -44,10 +49,15 @@ for tweet in iterator:
                 if data["retweeted"] == False:
                     text = data["text"]
                     if "🙁" not in text and "👍" not in text and "👎" not in text and "😄" in text:
-                        if text.find("http") == -1:
+                        url = re.findall(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\), ]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', text)
+                        if url == []:
                             #save to file
                             f.write(text)
                             tweet_count -= 1
+                            #show download status
+                            if tweet_count % 10:
+                                print(-(1000 - tweet_count))
+                                print(text)
     
     # The command below will do pretty printing for JSON data, try it out
     #print(json.dumps(tweet, indent=4))
