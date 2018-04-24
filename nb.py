@@ -10,6 +10,11 @@ import glob
 from nltk.corpus import stopwords
 import math
 import re
+from sklearn.neural_network import MLPClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.svm import LinearSVC
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn import metrics
 
 ###########################
 ## READ IN TRAINING DATA ##
@@ -21,7 +26,7 @@ import re
 ## We then add that set of words as a list to the master list of positive words.
 poswords = []
 negwords = []
-training = open("allClassifiedTrainingNoEmoji.txt", "r", encoding="utf8")
+training = open("allClassifiedTraining.txt", "r", encoding="utf8")
 for line in training:
     words = line.rstrip().split()
     sen = line[0:3]
@@ -123,6 +128,9 @@ def naive_bayes(reviewwords):
 ### PREDICT THE SENTIMENT OF THE TEST REVIEWS ###
 #################################################
 
+testing = []
+testinglabel = []
+
 nbcorrect = 0
 numberLines = 0
 testdata = open("classifiedTestData.txt", "r", encoding="utf8")
@@ -130,7 +138,12 @@ for line in testdata:
 
     numberLines += 1
     pol = line[0:3]
+    if pol == "neg":
+        testinglabel.append(0)
+    else:
+        testinglabel.append(1)
     tweet = line[4:]
+    testing.append([str(tweet)])
 
     if pol == naive_bayes(tweet):
         nbcorrect += 1
@@ -178,20 +191,19 @@ for n in negwords:
 # now read in the testing data
 # for each testing example, create a vector
 # of bninary features just as you did for the training data
-testing = []
-testinglabel = []
 
-testdata = glob.glob("test/*")
-for filename in testdata:
+realTesting = []
+#realTestingLabel = []
 
-    rw = []
-    f = open(filename)
-    filepolarity = re.sub(r"^.*?(pos|neg)-.*?$", r"\1", filename)
 
-    for line in f:
-        words = line.rstrip().split()
-        rw.extend(words)
-    f.close()
+#print(len(testing))
+#print(len(testinglabel))
+correspondingIndex = 0
+for tweet in testing:
+    
+    #print(tweet[0])
+
+    rw = tweet[0].split()
 
     vec = []
     for t in top1000:
@@ -199,14 +211,17 @@ for filename in testdata:
             vec.append(1)
         else:
             vec.append(0)
-    testing.append(vec)
+    realTesting.append(vec)
 
-    if filepolarity == "neg":
-        testinglabel.append(0)
-    else:
-        testinglabel.append(1)
-        
-print(len(testing))
+    #if testinglabel[correspondingIndex] == "neg":
+    #    print("yes")
+    #    realTestingLabel.append(0)
+    #else:
+    #    realTestingLabel.append(1)
+    correspondingIndex += 1
+
+#print(len(testing))
+#print(len(realTesting))
 ### NEURAL NET CLASSIFIER                                                                                       
 clf = MLPClassifier(solver='lbfgs', alpha=1e-5, hidden_layer_sizes=(5, 3), random_state=1)
 clf.fit(training, traininglabel)
@@ -215,9 +230,9 @@ print("Accruracy of Multi-Layer Perceptron")
 print(metrics.classification_report(testinglabel, predicted))
 
 ## Classifier 1
-clf2 = KNeighborsClassifier(n_neighbors=60)
+clf2 = KNeighborsClassifier(n_neighbors=20)
 clf2.fit(training, traininglabel)
-predicted = clf2.predict(testing)
+predicted = clf2.predict(realTesting)
 print("Accruracy of K-Nearest Neighbors")
 print(metrics.classification_report(testinglabel, predicted))
 
@@ -225,6 +240,6 @@ print(metrics.classification_report(testinglabel, predicted))
 ## Classifier 2
 clf3 = LinearSVC()
 clf3.fit(training, traininglabel)
-predicted = clf3.predict(testing)
+predicted = clf3.predict(realTesting)
 print("Accruracy of Linear SVC")
 print(metrics.classification_report(testinglabel, predicted))
