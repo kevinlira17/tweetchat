@@ -225,7 +225,7 @@ for tweet in testing:
 ### NEURAL NET CLASSIFIER                                                                                       
 clf = MLPClassifier(solver='lbfgs', alpha=1e-5, hidden_layer_sizes=(5, 3), random_state=1)
 clf.fit(training, traininglabel)
-predicted = clf.predict(testing)
+predicted = clf.predict(realTesting)
 print("Accruracy of Multi-Layer Perceptron")
 print(metrics.classification_report(testinglabel, predicted))
 
