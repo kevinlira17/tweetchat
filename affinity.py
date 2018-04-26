@@ -1,21 +1,13 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Sun Apr 22 14:09:45 2018
-
-@author: link9
-"""
 
 from nltk import FreqDist
 import math
-from sklearn.neural_network import MLPClassifier
-from sklearn.svm import LinearSVC
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn import metrics
-import numpy as np
 import nltk
-from nltk.util import ngrams
 
-
+def find_bigrams(input_list):
+  bigram_list = []
+  for i in range(len(input_list)-1):
+      bigram_list.append((input_list[i], input_list[i+1]))
+  return bigram_list
 ###########################
 ## READ IN TRAINING DATA ##
 ###########################
@@ -26,43 +18,48 @@ from nltk.util import ngrams
 ## We then add that set of words as a list to the master list of positive words.
 poswords = []
 negwords = []
+posbigrams = []
+negbigrams = []
 training = open("allClassifiedTraining.txt", "r", encoding="utf8")
 for line in training:
-    words = line.rstrip().split()
+    #words = line.rstrip().split()
     sen = line[0:3]
-    tweet = line[4:]
+    tweet = line[4:].rstrip().split()
     if sen == 'pos':
-        poswords.extend(list(set([w for w in words])))
+        poswords.extend(list(set([w for w in tweet])))
+        #print(find_bigrams(tweet))
+        #posbigrams.extend(list(set([ngrams(tweet,2) in tweet])))
+        posbigrams.extend(find_bigrams(tweet))
     else:
-        negwords.extend(list(set([w for w in words])))
-
+        negwords.extend(list(set([w for w in tweet])))
+        #negbigrams.extend(list(set([ngrams(tweet,2) in tweet])))
+        negbigrams.extend(find_bigrams(tweet))
 training.close()
+
 
 
 poswordprobs = {}
 negwordprobs = {}
-
-affinityprobs = {}
 
 postok = len(poswords)
 negtok = len(negwords)
 postype = len(set(poswords))
 negtype = len(set(negwords))
 
-
 allwords = list(set(negwords)) + list(set(poswords))
+
 
 posFreqDist = FreqDist(poswords)
 negFreqDist = FreqDist(negwords)
 
-posBigrams = ngrams(poswords,2)
-posBigramFDist = nltk.FreqDist(posBigrams)
-negBigrams = ngrams(negwords,2)
-negBigramFDist = nltk.FreqDist(negBigrams)
+posBigramFDist = nltk.FreqDist(posbigrams)
+negBigramFDist = nltk.FreqDist(negbigrams)
+posBigramFDist = dict(posBigramFDist)
+negBigramFDist = dict(negBigramFDist)
 
 
-affinityPosBGprobs = {}
-affinityNegBGprobs = {}
+affinityPosBGProbs = {}
+affinityNegBGProbs = {}
 
 
 ## Loop through your poswords FreqDist, and calculate the
@@ -77,18 +74,33 @@ for posW in posFreqDist:
 for negW in negFreqDist:
     probWIsNeg = math.log(negFreqDist[negW] / negtok)
     negwordprobs[negW] = probWIsNeg
-    
-for posBG in posBigramFDist:
-    w1 = posBG[0][0]
-    w2 = posBG[0][1]
-    count1 = poswords[w1]
-    count2 = poswords[w2]
+  
+
+for key, value in posBigramFDist.items():
+    w1 = key[0]
+    w2 = key[1]
+    count1 = posFreqDist[w1]
+    count2 = posFreqDist[w2]
     
     #WANT AFFINITY
+    minFreq = min(posFreqDist[w1], posFreqDist[w2])
+    affinity = value/minFreq
     #PMI = math.log2(N*(colloq[1]/(count1 * count2)))
-    posAllNGrams.append((posBG[0], affinity))
+    affinityPosBGProbs.update({key: affinity})
     
 #REPEAT FOR negBG
+    
+for key, value in negBigramFDist.items():
+    w1 = key[0]
+    w2 = key[1]
+    count1 = negFreqDist[w1]
+    count2 = negFreqDist[w2]
+    
+    #WANT AFFINITY
+    minFreq = min(negFreqDist[w1], negFreqDist[w2])
+    affinity = value/minFreq
+    #PMI = math.log2(N*(colloq[1]/(count1 * count2)))
+    affinityPosBGProbs.update({key: affinity})
 
 ######################################
 ### FUNCTIONS TO PREDICT SENTIMENT ###
@@ -98,30 +110,30 @@ for posBG in posBigramFDist:
 
 ## FUNCTION USING NAIVE BAYES PROBS TO PREDICT SENTIMENT
     
-#REWORK
 def affinity(reviewwords):
 
     defaultprob = math.log(0.0000000000001)
     
     ### POSITIVE SCORE
-    posscore = poswordprobs.get(reviewwords[0], defaultprob)
-    for i in range(1, len(reviewwords)):
-        posscore += poswordprobs.get(reviewwords[i], defaultprob)
-        #ALSO POSSCORE += affinityPosBGProbs.get((reviewwords[i],reviewwords[i+1]))
+    posscore = 0
+    #posscore = poswordprobs.get(reviewwords[0], defaultprob)
+    for i in range(1, len(reviewwords)-1):
+        # NOT SURE IF NEED BELOW LINE
+        #posscore += poswordprobs.get(reviewwords[i], defaultprob)
+        posscore += affinityPosBGProbs.get((reviewwords[i],reviewwords[i+1]), defaultprob)
 
     ### CALCULATE NEGATIVE SCORE
-    negscore = negwordprobs.get(reviewwords[0], defaultprob)
-    for i in range(1, len(reviewwords)):
-        negscore += negwordprobs.get(reviewwords[i], defaultprob)
+    negscore = 0
+    #negscore = negwordprobs.get(reviewwords[0], defaultprob)
+    for i in range(1, len(reviewwords)-1):
+        # NOT SURE IF NEED BELOW LINE
+        #negscore += negwordprobs.get(reviewwords[i], defaultprob)
+        negscore += affinityNegBGProbs.get((reviewwords[i],reviewwords[i+1]), defaultprob)
 
     if (posscore - negscore) >  0:
         return "pos"
 
     return "neg"
-
-
-
-
 
 
 testing = []
