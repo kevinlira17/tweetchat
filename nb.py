@@ -1,20 +1,12 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Sun Apr 22 14:09:45 2018
-
-@author: link9
-"""
 
 from nltk import FreqDist
-import glob
-from nltk.corpus import stopwords
 import math
-import re
 from sklearn.neural_network import MLPClassifier
-from sklearn.naive_bayes import GaussianNB
 from sklearn.svm import LinearSVC
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn import metrics
+import numpy as np
+
 
 ###########################
 ## READ IN TRAINING DATA ##
@@ -28,25 +20,19 @@ poswords = []
 negwords = []
 training = open("allClassifiedTraining.txt", "r", encoding="utf8")
 for line in training:
-    words = line.rstrip().split()
-    sen = line[0:3]
-    tweet = line[4:]
-    if sen == 'pos':
-        poswords.extend(list(set([w for w in words])))
+    #words = line.rstrip().split()
+    sen = line[0:3] #REFORMAT
+    tweet = line[4:].rstrip().split() #REFORMAT
+    if sen == 'pos': #REFORMAT
+        poswords.extend(list(set([w for w in tweet])))
     else:
-        negwords.extend(list(set([w for w in words])))
+        negwords.extend(list(set([w for w in tweet])))
 
 training.close()
 
 ###########################################################
 ## GET NAIVE BAYES PROBABILITIES FOR POS AND NEG CLASSES ##
 ###########################################################
-
-
-   #########################################################
-   ################# YOUR CODE BEGINS HERE #################
-   #########################################################
-
 
 ## GOAL: Populate these two dicts, where each
 ##      key = word from the pos or neg word list
@@ -80,21 +66,9 @@ for posW in posFreqDist:
     probWIsPos = math.log(posFreqDist[posW] / postok)
     poswordprobs[posW] = probWIsPos
 
-
-
-## Now, loop through your negwords FreqDist, and calculate the
-## probability of each word in the negative class, like this:
-## P(word|neg) = count(neg) / postok
-## Store the results in negwordprobs
-## USE LOGS!!!
 for negW in negFreqDist:
     probWIsNeg = math.log(negFreqDist[negW] / negtok)
     negwordprobs[negW] = probWIsNeg
-
-    #########################################################
-    ################# YOUR CODE ENDS HERE ###################
-    #########################################################
-
 
 
 ######################################
@@ -119,59 +93,80 @@ def naive_bayes(reviewwords):
         negscore += negwordprobs.get(reviewwords[i], defaultprob)
 
     if (posscore - negscore) >  0:
-        return "pos"
+        return "pos" #REFORMAT
 
-    return "neg"
+    return "neg" #REFORMAT
 
-
-#################################################
-### PREDICT THE SENTIMENT OF THE TEST REVIEWS ###
-#################################################
 
 testing = []
 testinglabel = []
 
-nbcorrect = 0
+#nbcorrect = 0
+numberTruePositivesForPos = 0
+numberFalsePositivesForPos = 0
+numberFalseNegativesForPos = 0
+numberTruePositivesForNeg = 0
+numberFalsePositivesForNeg = 0
+numberFalseNegativesForNeg = 0
 numberLines = 0
 testdata = open("classifiedTestData.txt", "r", encoding="utf8")
 for line in testdata:
 
     numberLines += 1
-    pol = line[0:3]
-    if pol == "neg":
+    pol = line[0:3] #REFORMAT
+    if pol == "neg": #REFORMAT
         testinglabel.append(0)
     else:
         testinglabel.append(1)
-    tweet = line[4:]
+    tweet = line[4:] #REFORMAT
     testing.append([str(tweet)])
 
-    if pol == naive_bayes(tweet):
-        nbcorrect += 1
+    result = naive_bayes(tweet)
+    #SAY POSITIVE SENTIMENT IS "POSITIVE"
+    if result == pol:
+        #MUST BE TRUE POS FOR POS SENTIMENT OR TRUE POS FOR NEG SENTIMENT
+        if result == "pos": #REFORMAT
+            numberTruePositivesForPos += 1
+        else:
+            numberTruePositivesForNeg += 1
+    else:
+        #WAS MIS-CATEGORIZED
+        if result == "pos": #AND WAS WRONG     (REFORMAT)
+            numberFalsePositivesForPos += 1
+            numberFalseNegativesForNeg += 1
+        else: # RESULT WAS NEG AND SHOULD HAVE BEEN POS
+            numberFalseNegativesForPos += 1
+            numberFalsePositivesForNeg += 1
 
 testdata.close()
-
-print("Naive Bayes accuracy: ", (nbcorrect/numberLines))
+#print("Naive Bayes accuracy: ", (nbcorrect/numberLines))
+precision = ((numberTruePositivesForPos / (numberTruePositivesForPos + numberFalsePositivesForPos)) + (numberTruePositivesForNeg/(numberTruePositivesForNeg+numberFalsePositivesForNeg))/2)
+print("Averaged Precision of NB: ", precision)
+recall = ((numberTruePositivesForPos / (numberTruePositivesForPos + numberFalseNegativesForPos)) + (numberTruePositivesForNeg/(numberTruePositivesForNeg+numberFalseNegativesForNeg))/2)
+print("Averaged Recall of NB: ", recall)
+fscore = (2 * precision * recall)/(precision + recall)
+print("Averaged F-Score of NB: ", fscore)
 
 
 
 ################################################################
 
 # CODE OUTLINE FOR CONTINUING ANALYSIS WITH OTHER CLASSIFIERS
-## Get the 1000 most frequent words
+## Get the 1500 most frequent words
 ## These will be your features
 wfreq = FreqDist(allwords)
-top1000 = wfreq.most_common(1500)
+top1500 = wfreq.most_common(1500)
 
 training = []
 traininglabel = []
 
 # Take each review, and create a feature vector.
-# For each word in the top1000, if that review contains
+# For each word in the top1500, if that review contains
 # that word, set its vector value to 1; otherwise 0.
 
 for p in poswords:
     vec = []
-    for t in top1000:
+    for t in top1500:
         if t[0] in p:
             vec.append(1)
         else:
@@ -181,7 +176,7 @@ for p in poswords:
 
 for n in negwords:
     vec = []
-    for t in top1000:
+    for t in top1500:
         if t[0] in n:
             vec.append(1)
         else:
@@ -193,35 +188,26 @@ for n in negwords:
 # of bninary features just as you did for the training data
 
 realTesting = []
-#realTestingLabel = []
 
 
-#print(len(testing))
-#print(len(testinglabel))
 correspondingIndex = 0
 for tweet in testing:
-    
-    #print(tweet[0])
-
     rw = tweet[0].split()
 
     vec = []
-    for t in top1000:
+    for t in top1500:
         if t[0] in rw:
             vec.append(1)
         else:
             vec.append(0)
     realTesting.append(vec)
-
-    #if testinglabel[correspondingIndex] == "neg":
-    #    print("yes")
-    #    realTestingLabel.append(0)
-    #else:
-    #    realTestingLabel.append(1)
     correspondingIndex += 1
 
-#print(len(testing))
-#print(len(realTesting))
+testinglabel2 = np.array(testinglabel)
+realTesting2 = np.array(realTesting)
+
+
+
 ### NEURAL NET CLASSIFIER                                                                                       
 clf = MLPClassifier(solver='lbfgs', alpha=1e-5, hidden_layer_sizes=(5, 3), random_state=1)
 clf.fit(training, traininglabel)
@@ -235,7 +221,6 @@ clf2.fit(training, traininglabel)
 predicted = clf2.predict(realTesting)
 print("Accruracy of K-Nearest Neighbors")
 print(metrics.classification_report(testinglabel, predicted))
-
 
 ## Classifier 2
 clf3 = LinearSVC()
