@@ -18,12 +18,11 @@ import numpy as np
 ## We then add that set of words as a list to the master list of positive words.
 poswords = []
 negwords = []
-training = open("allClassifiedTraining.txt", "r", encoding="utf8")
+training = open("TRAINING.txt", "r", encoding="utf8")
 for line in training:
-    #words = line.rstrip().split()
-    sen = line[0:3] #REFORMAT
-    tweet = line[4:].rstrip().split() #REFORMAT
-    if sen == 'pos': #REFORMAT
+    sen = line[0]
+    tweet = line[2:].rstrip().split()
+    if sen == '1':
         poswords.extend(list(set([w for w in tweet])))
     else:
         negwords.extend(list(set([w for w in tweet])))
@@ -93,9 +92,9 @@ def naive_bayes(reviewwords):
         negscore += negwordprobs.get(reviewwords[i], defaultprob)
 
     if (posscore - negscore) >  0:
-        return "pos" #REFORMAT
+        return "1"
 
-    return "neg" #REFORMAT
+    return "0"
 
 
 testing = []
@@ -109,29 +108,29 @@ numberTruePositivesForNeg = 0
 numberFalsePositivesForNeg = 0
 numberFalseNegativesForNeg = 0
 numberLines = 0
-testdata = open("classifiedTestData.txt", "r", encoding="utf8")
+testdata = open("TEST.txt", "r", encoding="utf8")
 for line in testdata:
 
     numberLines += 1
-    pol = line[0:3] #REFORMAT
-    if pol == "neg": #REFORMAT
+    pol = line[0]
+    if pol == "0":
         testinglabel.append(0)
     else:
         testinglabel.append(1)
-    tweet = line[4:] #REFORMAT
+    tweet = line[2:]
     testing.append([str(tweet)])
 
     result = naive_bayes(tweet)
     #SAY POSITIVE SENTIMENT IS "POSITIVE"
     if result == pol:
         #MUST BE TRUE POS FOR POS SENTIMENT OR TRUE POS FOR NEG SENTIMENT
-        if result == "pos": #REFORMAT
+        if result == "1":
             numberTruePositivesForPos += 1
         else:
             numberTruePositivesForNeg += 1
     else:
         #WAS MIS-CATEGORIZED
-        if result == "pos": #AND WAS WRONG     (REFORMAT)
+        if result == "1": #AND WAS WRONG
             numberFalsePositivesForPos += 1
             numberFalseNegativesForNeg += 1
         else: # RESULT WAS NEG AND SHOULD HAVE BEEN POS
