@@ -179,12 +179,12 @@ testdata = open("classifiedTestData.txt", "r", encoding="utf8")
 for line in testdata:
 
     numberLines += 1
-    pol = line[0:3]
-    if pol == "neg":
+    pol = line[0]
+    if pol == 0:
         testinglabel.append(0)
     else:
         testinglabel.append(1)
-    tweet = line[4:]
+    tweet = line[2:]
     testing.append([str(tweet)])
 
     if pol == affinity(tweet):
