@@ -1,9 +1,11 @@
 import sys
 import os
 
-def checkTweetSize(tweetdata):
+def checkTweet(tweetdata):
     with open(tweetdata, 'r', encoding="utf-8") as f:
         for i, l in enumerate(f):
+            if len(l.strip()) == 0 :
+                print("contains empty line")
             pass
     print(i + 1)
 
@@ -18,6 +20,7 @@ def extractData(tweetdata):
             count += 1
 
 def formatResult(tweetdata, resdata):
+    res_count = 0
     non_bmp_map = dict.fromkeys(range(0x10000, sys.maxunicode + 1), 0xfffd)
     tweetlist = []
     resmap = {}
@@ -28,7 +31,7 @@ def formatResult(tweetdata, resdata):
         for line in readfile:
             words = line.split()
             fileval = words[0].strip(".txt")
-            if (words[2] != "posemo"):
+            if (words[0] != "Filename"):
                 if (float(words[2]) > float(words[3])):
                     resmap[fileval] = "1"
                 elif(float(words[2]) < float(words[3])):
@@ -37,9 +40,13 @@ def formatResult(tweetdata, resdata):
                     resmap[fileval] = "-1"
     with open("resdata.txt", 'w', encoding="utf-8") as save:
         for i in range(len(tweetlist)):
-            save.write(resmap[str(i+1)] + " " + tweetlist[i] + "\n")
+            if (resmap[str(i+1)] != "-1"):
+                res_count += 1
+                save.write(resmap[str(i+1)] + " " + tweetlist[i])
     print("complete")
+    print(res_count)
+    
 
-#checkTweetSize("cleanTestData.txt")
-#extractData("cleanTestData.txt")
-#formatResult("cleanTestData.txt", "LIWC2015res.txt")
+#checkTweet("cleanThumbsup.txt")
+#extractData("cleanThumbsup.txt")
+#formatResult("cleanThumbsup.txt", "LIWC2015ThumbsupRes.txt")
