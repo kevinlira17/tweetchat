@@ -18,7 +18,7 @@ import numpy as np
 ## We then add that set of words as a list to the master list of positive words.
 poswords = []
 negwords = []
-training = open("TRAINING.txt", "r", encoding="utf8")
+training = open("TRAINING_NEGATIVE_NO_EMOJI.txt", "r", encoding="utf8")
 for line in training:
     sen = line[0]
     tweet = line[2:].rstrip().split()
@@ -108,7 +108,7 @@ numberTruePositivesForNeg = 0
 numberFalsePositivesForNeg = 0
 numberFalseNegativesForNeg = 0
 numberLines = 0
-testdata = open("TEST.txt", "r", encoding="utf8")
+testdata = open("TEST_NEGATIVE_NO_EMOJI.txt", "r", encoding="utf8")
 for line in testdata:
 
     numberLines += 1
@@ -139,9 +139,9 @@ for line in testdata:
 
 testdata.close()
 #print("Naive Bayes accuracy: ", (nbcorrect/numberLines))
-precision = ((numberTruePositivesForPos / (numberTruePositivesForPos + numberFalsePositivesForPos)) + (numberTruePositivesForNeg/(numberTruePositivesForNeg+numberFalsePositivesForNeg))/2)
+precision = ((numberTruePositivesForPos / (numberTruePositivesForPos + numberFalsePositivesForPos)) + (numberTruePositivesForNeg/(numberTruePositivesForNeg+numberFalsePositivesForNeg)))/2
 print("Averaged Precision of NB: ", precision)
-recall = ((numberTruePositivesForPos / (numberTruePositivesForPos + numberFalseNegativesForPos)) + (numberTruePositivesForNeg/(numberTruePositivesForNeg+numberFalseNegativesForNeg))/2)
+recall = ((numberTruePositivesForPos / (numberTruePositivesForPos + numberFalseNegativesForPos)) + (numberTruePositivesForNeg/(numberTruePositivesForNeg+numberFalseNegativesForNeg)))/2
 print("Averaged Recall of NB: ", recall)
 fscore = (2 * precision * recall)/(precision + recall)
 print("Averaged F-Score of NB: ", fscore)
