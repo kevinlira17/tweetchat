@@ -6,11 +6,6 @@ Created on Sun Apr 22 14:09:45 2018
 
 from nltk import FreqDist
 import math
-from sklearn.neural_network import MLPClassifier
-from sklearn.svm import LinearSVC
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn import metrics
-import numpy as np
 import nltk
 from nltk.util import ngrams
 
@@ -25,7 +20,7 @@ from nltk.util import ngrams
 ## We then add that set of words as a list to the master list of positive words.
 poswords = []
 negwords = []
-training = open("Training.txt", "r", encoding="utf8")
+training = open("TrainingNegativeNoEmoji.txt", "r", encoding="utf8")
 for line in training:
     words = line.rstrip().split()
     sen = line[0]
@@ -109,6 +104,7 @@ for phrase in negBigramList:
     pFreq=negBigramFDist[phrase]
     wFreq=float("Inf")
     for w in phrase:
+        #print(w)
         if phrase.count(w)<wFreq:
             wFreq=phrase.count(w)
     affinityNegBGprobs[phrase]=pFreq/wFreq
@@ -141,20 +137,33 @@ for phrase in negTrigramList:
     
 #REWORK
 def affinity(reviewwords):
-
     #defaultprob = math.log(0.0000000000001)
-    
+    bigrams = ngrams(reviewwords.split(),2)
+    trigrams= ngrams(reviewwords.split(),3)
     ### POSITIVE SCORE
     posscore=0
     negscore=0
-    for key in affinityPosTGprobs.keys():
-        posscore+=affinityPosTGprobs[key]
-    for key in affinityPosBGprobs.keys():
-        posscore+=affinityPosBGprobs[key]
-    for key in affinityNegTGprobs.keys():
-        negscore+=affinityNegTGprobs[key]
-    for key in affinityNegBGprobs.keys():
-        negscore+=affinityNegBGprobs[key]
+    for pair in bigrams:
+        if pair in affinityPosBGprobs.keys():
+            #print(pair)
+            posscore+=affinityPosBGprobs[pair]
+        if pair in affinityNegBGprobs.keys():
+            negscore+=affinityNegBGprobs[pair]
+    for trip in trigrams:
+        if trip in affinityPosTGprobs.keys():
+            #print(trip)
+            posscore+=affinityPosTGprobs[trip]
+        if trip in affinityNegTGprobs.keys():
+            negscore+=affinityNegTGprobs[trip]
+    #print(posscore1-negscore1, posscore-negscore)
+    #for key in affinityPosTGprobs.keys():
+        #posscore+=affinityPosTGprobs[key]
+    #for key in affinityPosBGprobs.keys():
+        #posscore+=affinityPosBGprobs[key]
+    #for key in affinityNegTGprobs.keys():
+        #negscore+=affinityNegTGprobs[key]
+    #for key in affinityNegBGprobs.keys():
+        #negscore+=affinityNegBGprobs[key]
     #for i in range(1, len(reviewwords)):
         #posscore += poswordprobs.get(reviewwords[i], defaultprob)
         #ALSO POSSCORE += affinityPosBGProbs.get((reviewwords[i],reviewwords[i+1]))
@@ -163,11 +172,11 @@ def affinity(reviewwords):
     #negscore = negwordprobs.get(reviewwords[0], defaultprob)
     #for i in range(1, len(reviewwords)):
         #negscore += negwordprobs.get(reviewwords[i], defaultprob)
-
+    #print(posscore)
     if (posscore - negscore) >  0:
-        return "pos"
+        return "1"
 
-    return "neg"
+    return "0"
 
 vals=[]
 testing = []
@@ -175,7 +184,7 @@ testinglabel = []
 
 nbcorrect = 0
 numberLines = 0
-testdata = open("classifiedTestData.txt", "r", encoding="utf8")
+testdata = open("TestNegativeNoEmoji.txt", "r", encoding="utf8")
 for line in testdata:
 
     numberLines += 1
@@ -191,5 +200,50 @@ for line in testdata:
         nbcorrect += 1
 
 testdata.close()
-print("Naive Bayes accuracy: ", (nbcorrect/numberLines))
 
+numberTruePositivesForPos = 0
+numberFalsePositivesForPos = 0
+numberFalseNegativesForPos = 0
+numberTruePositivesForNeg = 0
+numberFalsePositivesForNeg = 0
+numberFalseNegativesForNeg = 0
+testdata = open("TestNegativeNoEmoji.txt", "r", encoding="utf8")
+numberLines = 0
+for line in testdata:
+
+    numberLines += 1
+    pol = line[0]
+    if pol == "0":
+        testinglabel.append(0)
+    else:
+        testinglabel.append(1)
+    tweet = line[2:]
+    testing.append([str(tweet)])
+
+    result = affinity(tweet)
+    #SAY POSITIVE SENTIMENT IS "POSITIVE"
+    #print(result==pol,result)
+    if result == pol:
+        #MUST BE TRUE POS FOR POS SENTIMENT OR TRUE POS FOR NEG SENTIMENT
+        if result == "1":
+            numberTruePositivesForPos += 1
+        else:
+            numberTruePositivesForNeg += 1
+    else:
+        #WAS MIS-CATEGORIZED
+        if result == "1": #AND WAS WRONG
+            numberFalsePositivesForPos += 1
+            numberFalseNegativesForNeg += 1
+        else: # RESULT WAS NEG AND SHOULD HAVE BEEN POS
+            numberFalseNegativesForPos += 1
+            numberFalsePositivesForNeg += 1
+
+testdata.close()
+print(numberFalseNegativesForPos)
+#print("Naive Bayes accuracy: ", (nbcorrect/numberLines))
+precision = (((numberTruePositivesForPos / (numberTruePositivesForPos + numberFalsePositivesForPos)) + (numberTruePositivesForNeg/(numberTruePositivesForNeg+numberFalsePositivesForNeg)))/2)
+print("Averaged Precision of Affinity: ", precision)
+recall = (((numberTruePositivesForPos / (numberTruePositivesForPos + numberFalseNegativesForPos)) + (numberTruePositivesForNeg/(numberTruePositivesForNeg+numberFalseNegativesForNeg)))/2)
+print("Averaged Recall of Affinity: ", recall)
+fscore = (2 * precision * recall)/(precision + recall)
+print("Averaged F-Score of Affinity: ", fscore)
